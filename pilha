@@ -4,16 +4,21 @@
 
 #define MAX 100
 
+// =====================================================
+// SISTEMA DE CHAMADAS DE EMERGÊNCIA (PILHA - LIFO)
+// Última ocorrência registrada será atendida primeiro
+// =====================================================
+
 // ===== Estrutura =====
 typedef struct {
     int protocolo;
     char local[50];
-    char tipo[50];
+    char tipoEmergencia[50];
     char horario[20];
-} Chamado;
+} Emergencia;
 
 typedef struct {
-    Chamado dados[MAX];
+    Emergencia dados[MAX];
     int topo;
 } Pilha;
 
@@ -22,6 +27,7 @@ void inicializar(Pilha *p) {
     p->topo = -1;
 }
 
+// Verifica se já existe protocolo (evita duplicidade)
 int existeProtocolo(Pilha *p, int protocolo) {
     for (int i = 0; i <= p->topo; i++) {
         if (p->dados[i].protocolo == protocolo)
@@ -30,70 +36,84 @@ int existeProtocolo(Pilha *p, int protocolo) {
     return 0;
 }
 
-int push(Pilha *p, Chamado c) {
-    if (p->topo == MAX - 1) return 0;        // pilha cheia
-    if (existeProtocolo(p, c.protocolo)) return -1; // duplicado
+// Inserir nova emergência (push)
+int registrarEmergencia(Pilha *p, Emergencia e) {
+    if (p->topo == MAX - 1) return 0; // pilha cheia
+    if (existeProtocolo(p, e.protocolo)) return -1; // duplicado
 
-    p->dados[++p->topo] = c;
+    p->dados[++p->topo] = e;
     return 1;
 }
 
-int pop(Pilha *p) {
+// Atender emergência (pop)
+int atenderEmergencia(Pilha *p) {
     if (p->topo == -1) return 0; // pilha vazia
+
+    printf("\nAtendendo emergencia:\n");
+    printf("%d | %s | %s | %s\n",
+           p->dados[p->topo].protocolo,
+           p->dados[p->topo].local,
+           p->dados[p->topo].tipoEmergencia,
+           p->dados[p->topo].horario);
 
     p->topo--;
     return 1;
 }
 
-void listar(Pilha *p) {
+// Listar emergências (do topo para base)
+void listarEmergencias(Pilha *p) {
     if (p->topo == -1) {
-        printf("Pilha vazia!\n");
+        printf("Nenhuma emergencia registrada!\n");
         return;
     }
+
+    printf("\n===== EMERGENCIAS PENDENTES =====\n");
 
     for (int i = p->topo; i >= 0; i--) {
         printf("%d | %s | %s | %s\n",
                p->dados[i].protocolo,
                p->dados[i].local,
-               p->dados[i].tipo,
+               p->dados[i].tipoEmergencia,
                p->dados[i].horario);
     }
 }
 
+// Salvar em CSV
 void salvar(Pilha *p) {
-    FILE *f = fopen("dados.csv", "w");
+    FILE *f = fopen("emergencias.csv", "w");
     if (!f) return;
 
-    fprintf(f, "protocolo;local;tipo;horario\n");
+    fprintf(f, "protocolo;local;tipoEmergencia;horario\n");
 
     for (int i = 0; i <= p->topo; i++) {
         fprintf(f, "%d;%s;%s;%s\n",
                 p->dados[i].protocolo,
                 p->dados[i].local,
-                p->dados[i].tipo,
+                p->dados[i].tipoEmergencia,
                 p->dados[i].horario);
     }
 
     fclose(f);
 }
 
+// Carregar CSV
 void carregar(Pilha *p) {
-    FILE *f = fopen("dados.csv", "r");
+    FILE *f = fopen("emergencias.csv", "r");
     if (!f) return;
 
     char linha[150];
     fgets(linha, 150, f); // pula cabeçalho
 
-    Chamado c;
+    Emergencia e;
 
     while (fscanf(f, "%d;%49[^;];%49[^;];%19[^\n]\n",
-                  &c.protocolo,
-                  c.local,
-                  c.tipo,
-                  c.horario) == 4) {
+                  &e.protocolo,
+                  e.local,
+                  e.tipoEmergencia,
+                  e.horario) == 4) {
 
         if (p->topo < MAX - 1)
-            p->dados[++p->topo] = c;
+            p->dados[++p->topo] = e;
     }
 
     fclose(f);
@@ -106,13 +126,13 @@ int main() {
     carregar(&p);
 
     int op;
-    Chamado c;
+    Emergencia e;
 
     do {
-        printf("\n===== MENU =====\n");
-        printf("1 - Inserir\n");
-        printf("2 - Remover\n");
-        printf("3 - Listar\n");
+        printf("\n===== SISTEMA DE EMERGENCIA =====\n");
+        printf("1 - Registrar emergencia\n");
+        printf("2 - Atender emergencia\n");
+        printf("3 - Listar emergencias\n");
         printf("4 - Sair\n");
         printf("Opcao: ");
         scanf("%d", &op);
@@ -121,41 +141,39 @@ int main() {
 
             case 1:
                 printf("Protocolo: ");
-                scanf("%d", &c.protocolo);
+                scanf("%d", &e.protocolo);
 
-                printf("Local: ");
-                scanf(" %[^\n]", c.local);
+                printf("Local da emergencia: ");
+                scanf(" %[^\n]", e.local);
 
-                printf("Tipo: ");
-                scanf(" %[^\n]", c.tipo);
+                printf("Tipo de emergencia: ");
+                scanf(" %[^\n]", e.tipoEmergencia);
 
                 printf("Horario: ");
-                scanf(" %[^\n]", c.horario);
+                scanf(" %[^\n]", e.horario);
 
-                int r = push(&p, c);
+                int r = registrarEmergencia(&p, e);
 
                 if (r == 1)
-                    printf("Inserido!\n");
+                    printf("Emergencia registrada!\n");
                 else if (r == 0)
-                    printf("Pilha cheia!\n");
+                    printf("Limite de emergencias atingido!\n");
                 else
-                    printf("Protocolo duplicado!\n");
+                    printf("Protocolo ja existente!\n");
 
                 break;
 
             case 2:
-                if (pop(&p))
-                    printf("Removido!\n");
-                else
-                    printf("Pilha vazia!\n");
+                if (!atenderEmergencia(&p))
+                    printf("Nenhuma emergencia para atender!\n");
                 break;
 
             case 3:
-                listar(&p);
+                listarEmergencias(&p);
                 break;
 
             case 4:
-                printf("Saindo...\n");
+                printf("Encerrando sistema...\n");
                 break;
 
             default:

@@ -1,38 +1,115 @@
-
 #include <stdio.h>
-#include "fila.h"
 
-void initFila(Fila *f){
+#define MAX 100
+
+// ===== Estruturas =====
+typedef struct {
+    int protocolo;
+    char nome[50];
+    char problema[50];
+} Atendimento;
+
+typedef struct {
+    Atendimento dados[MAX];
+    int inicio, fim, total;
+} Fila;
+
+// ===== Funções da fila =====
+void initFila(Fila *f) {
     f->inicio = 0;
     f->fim = 0;
     f->total = 0;
 }
 
-int enqueue(Fila *f, Atendimento a){
-    if(f->total == MAX) return 0;
+int enqueue(Fila *f, Atendimento a) {
+    if (f->total == MAX) return 0;
 
     f->dados[f->fim] = a;
     f->fim = (f->fim + 1) % MAX;
     f->total++;
+
     return 1;
 }
 
-int dequeue(Fila *f){
-    if(f->total == 0) return 0;
+int dequeue(Fila *f) {
+    if (f->total == 0) return 0;
 
     f->inicio = (f->inicio + 1) % MAX;
     f->total--;
+
     return 1;
 }
 
-void listar(Fila *f){
+void listar(Fila *f) {
     int i = f->inicio;
-    for(int c=0; c < f->total; c++){
+
+    for (int c = 0; c < f->total; c++) {
         Atendimento a = f->dados[i];
 
         printf("%d | %s | %s\n",
-        a.protocolo, a.nome, a.problema);
+               a.protocolo,
+               a.nome,
+               a.problema);
 
         i = (i + 1) % MAX;
     }
+}
+
+// ===== MAIN =====
+int main() {
+    Fila f;
+    initFila(&f);
+
+    int op;
+    Atendimento a;
+
+    do {
+        printf("\n===== MENU =====\n");
+        printf("1 - Enfileirar\n");
+        printf("2 - Atender (desenfileirar)\n");
+        printf("3 - Listar\n");
+        printf("4 - Sair\n");
+        printf("Opcao: ");
+        scanf("%d", &op);
+
+        switch (op) {
+
+            case 1:
+                printf("Protocolo: ");
+                scanf("%d", &a.protocolo);
+
+                printf("Nome: ");
+                scanf(" %[^\n]", a.nome);
+
+                printf("Problema: ");
+                scanf(" %[^\n]", a.problema);
+
+                if (enqueue(&f, a))
+                    printf("Adicionado com sucesso!\n");
+                else
+                    printf("Fila cheia!\n");
+                break;
+
+            case 2:
+                if (dequeue(&f))
+                    printf("Atendimento realizado!\n");
+                else
+                    printf("Fila vazia!\n");
+                break;
+
+            case 3:
+                listar(&f);
+                break;
+
+            case 4:
+                printf("Saindo...\n");
+                break;
+
+            default:
+                printf("Opcao invalida!\n");
+        }
+
+    } while (op != 4);
+
+    return 0;
 }
